@@ -4,15 +4,22 @@ include 'db.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user = $_POST['username'];
     $pass = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $user, $pass);
-    
-    if ($stmt->execute()) 
-        $status = "success";
-    } else {
-        $status = "error";
-    }
+    $check_stmt = $conn->prepare("SELECT username FROM users WHERE username = ?");
+    $check_stmt->bind_param("s", $user);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
 
+    if ($check_result->num_rows > 0) {
+        $status = "error";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+        $stmt->bind_param("ss", $user, $pass);
+        
+        if ($stmt->execute()) {
+            $status = "success";
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -31,7 +38,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php else: ?>
             <form method="post">
                 <h2>Register</h2>
-                <?php if(isset($status) && $status == "error") echo "<p style='color:red;'>User already exists!</p>"; ?>
                 <input type="text" name="username" placeholder="Choose Username" required>
                 <input type="password" name="password" placeholder="Choose Password" required>
                 <button type="submit">Sign Up</button>
